@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coventry University Scholar</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f8f9fa; 
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 30px 0;
+        }
+        h1 { 
+            color: #0078d4; 
+            margin: 0;
+        }
+        .back-link {
+            color: #0078d4;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid #0078d4;
+            border-radius: 4px;
+        }
+        .back-link:hover {
+            background-color: #0078d4;
+            color: white;
+        }
+        .search-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .search-container input {
+            padding: 12px 20px;
+            width: 60%;
+            max-width: 600px;
+            font-size: 16px;
+            border: 2px solid #0078d4;
+            border-radius: 24px 0 0 24px;
+            outline: none;
+        }
+        .search-container button {
+            padding: 12px 20px;
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 0 24px 24px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .search-container button:hover {
+            background-color: #005a9e;
+        }
+        .result { 
+            background: white; 
+            padding: 20px; 
+            margin: 15px auto; 
+            border-radius: 8px; 
+            width: 80%; 
+            text-align: left;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .result a { 
+            font-size: 18px; 
+            color: #0078d4; 
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .result a:hover {
+            text-decoration: underline;
+        }
+        .result p {
+            color: #555;
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+        .result small {
+            color: #777;
+        }
+        .pagination { 
+            margin: 30px 0;
+            text-align: center;
+        }
+        .pagination button { 
+            padding: 8px 12px; 
+            margin: 5px; 
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer; 
+            transition: all 0.3s;
+        }
+        .pagination button:hover {
+            background-color: #e0e0e0;
+        }
+        .pagination button.active { 
+            background-color: #0078d4; 
+            color: white;
+            border-color: #0078d4;
+        }
+        .no-results {
+            text-align: center;
+            color: #777;
+            margin: 40px 0;
+        }
+        @media (max-width: 768px) {
+            .result {
+                width: 95%;
+            }
+            .search-container input {
+                width: 70%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Coventry University Scholar</h1>
+            <a href="/" class="back-link">Back to Main Menu</a>
+        </div>
+        
+        <div class="search-container">
+            <form id="searchForm">
+                <input type="text" id="query" placeholder="Search for publications...">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+        
+        <div id="results"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let resultsPerPage = 5;
+        let searchResults = [];
+
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const query = document.getElementById('query').value;
+            if (!query.trim()) {
+                alert("Please enter a search term");
+                return;
+            }
+            
+            fetch(`/search?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    searchResults = data;  // Assuming the backend sends JSON with results
+                    currentPage = 1;
+                    displayResults();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('results').innerHTML = 
+                        '<div class="no-results">An error occurred while searching. Please try again later.</div>';
+                });
+        });
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            if (searchResults.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No results found.</div>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+            
+            const start = (currentPage - 1) * resultsPerPage;
+            const end = Math.min(start + resultsPerPage, searchResults.length);
+            
+            searchResults.slice(start, end).forEach(item => {
+                const div = document.createElement('div');
+                div.classList.add('result');
+                
+                // Handle missing or NaN abstract
+                const abstract = item.abstract && item.abstract !== 'NaN' ? item.abstract : 'No abstract available.';
+                
+                // Handle authors: check if authors is an array and not NaN
+                let authors = 'Unknown Author';
+                if (Array.isArray(item.authors) && item.authors.length > 0) {
+                    authors = item.authors.join(', ');
+                } else if (typeof item.authors === 'string' && item.authors !== 'NaN') {
+                    authors = item.authors;
+                }
+                
+                div.innerHTML = `
+                    <a href="${item.link || '#'}" target="_blank">${item.title}</a>
+                    <p>${abstract.length > 200 ? abstract.substring(0, 200) + '...' : abstract}</p>
+                    <small><b>Author:</b> ${authors} | <b>Date:</b> ${item.year || 'Unknown'}</small>
+                `;
+                resultsDiv.appendChild(div);
+            });
+            
+            displayPagination();
+        }
+
+        function displayPagination() {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.innerHTML = '';
+            
+            const totalPages = Math.ceil(searchResults.length / resultsPerPage);
+            if (totalPages <= 1) return;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.innerText = i;
+                if (i === currentPage) button.classList.add('active');
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    displayResults();
+                    window.scrollTo(0, 0);
+                });
+                paginationDiv.appendChild(button);
+            }
+        }
+    </script>
+</body>
+</html>

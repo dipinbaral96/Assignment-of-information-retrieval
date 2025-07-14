@@ -1,0 +1,10 @@
+Flask
+joblib
+nltk
+pandas
+numpy
+scikit-learn
+ujson
+schedule
+selenium
+webdriver-manager

@@ -7,12 +7,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - name: Run tests
-      run: python -m unittest
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Display current directory and files
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -al
+
+      - name: Check if requirements.txt exists
+        run: |
+          if [ -f requirements.txt ]; then
+            echo "requirements.txt found."
+          else
+            echo "requirements.txt not found!" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m unittest discover -s tests
